@@ -821,7 +821,7 @@
         transform: none !important;
         pointer-events: auto !important;
         min-height: auto;
-        padding: 80px 20px 48px;
+        padding: 40px 20px 24px;
         display: flex;
       }
       .phase[data-p="0"] {
@@ -829,6 +829,8 @@
         align-items: center;
         padding: 0 20px;
       }
+      /* Tighter gap in mobile sections */
+      .phase-capabilities, .phase-metrics { gap: 28px; }
 
       /* card-anim: start hidden, IntersectionObserver adds .mob-in */
       .card-anim {
