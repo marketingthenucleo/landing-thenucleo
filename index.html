@@ -385,14 +385,21 @@
     /* ── PHASE 3 — SHOWCASE (SPLIT LAYOUT) ──────────── */
     .phase-showcase {
       flex-direction: row; gap: 0;
-      max-width: 1200px; margin: 0 auto;
       align-items: center;
-      padding: 0 40px;
+      justify-content: center;
+      padding: 0 48px;
+      padding-top: 14vh;
+    }
+    /* Header breaks out of the row — full width centered */
+    .phase-showcase .phase-header {
+      position: absolute; top: 10vh; left: 0; right: 0;
+      width: 100%;
     }
 
     /* Modules deck — LEFT */
     .showcase-modules {
-      width: 42%;
+      width: 40%;
+      max-width: 440px;
       padding-right: 48px;
       order: -1;
       position: relative;
@@ -401,7 +408,8 @@
 
     /* Laptop side — RIGHT */
     .laptop-wrapper {
-      width: 58%; flex-shrink: 0;
+      width: 55%; flex-shrink: 0;
+      max-width: 660px;
       position: relative;
       pointer-events: auto;
     }
@@ -1050,7 +1058,7 @@
 
       <!-- PHASE 3 — SHOWCASE: SPLIT LAYOUT -->
       <div class="phase phase-showcase" data-p="3">
-        <div class="phase-header" style="position:absolute;top:10vh;left:0;right:0;">
+        <div class="phase-header">
           <div class="section-label">Tu ma&ntilde;ana perfecta</div>
           <h2 class="section-title">Abres el portal.<br/><em>Todo controlado.</em></h2>
         </div>
@@ -1251,21 +1259,22 @@
     nucleo.rotation.set(0.3, -0.2, 0.1);
     scene.add(nucleo);
 
-    /* ── GEOMETRÍAS DISPERSAS — sistema original ──────── */
-    const geoPool = [
-      new THREE.IcosahedronGeometry(1, 0),
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.TorusGeometry(0.7, 0.2, 8, 16),
-      new THREE.OctahedronGeometry(0.8, 0),
-      new THREE.TetrahedronGeometry(0.9, 0),
-      new THREE.ConeGeometry(0.6, 1.2, 6),
-      new THREE.DodecahedronGeometry(0.7, 0),
+    /* ── LOGOS DISPERSOS — sprites con texturas PNG ──── */
+    const LOGO_SRCS = [
+      'icons/GHL.png','icons/clickup.png','icons/clientify.png',
+      'icons/googleads.png','icons/holded.png','icons/hostinger.png',
+      'icons/hubspot.png','icons/metaads.png','icons/n8n.png',
+      'icons/notion.png','icons/obsidian.png','icons/wordpres.png'
     ];
+    const logoTextures = LOGO_SRCS.map(src => {
+      const tex = new THREE.TextureLoader().load(src);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    });
 
-    const TOTAL = 28;
+    const TOTAL = 18;
     const assemblage = [];
 
-    // Centro gravitacional: posición del isotipo en coordenadas de escena
     const GRAVITY_CENTER = new THREE.Vector3(22, 1, -6);
 
     function getAssembledPos(i) {
@@ -1283,14 +1292,26 @@
       );
     }
 
+    const planeGeo = new THREE.PlaneGeometry(1, 1);
+
     for (let i = 0; i < TOTAL; i++) {
-      const geo = geoPool[Math.floor(Math.random() * geoPool.length)];
-      const isYellow = Math.random() > 0.35;
+      const tex = logoTextures[i % logoTextures.length];
       const mat = new THREE.MeshBasicMaterial({
-        color: isYellow ? 0xf3f959 : 0xc7b299,
-        wireframe: true, transparent: true, opacity: 0
+        map: tex,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        opacity: 0
       });
-      const mesh = new THREE.Mesh(geo, mat);
+      const mesh = new THREE.Mesh(planeGeo, mat);
+
+      /* Velocidad de spin propia por eje — cada logo gira distinto */
+      const spinSpeed = {
+        x: (Math.random() - 0.5) * 0.012,
+        y: 0.006 + Math.random() * 0.010,
+        z: (Math.random() - 0.5) * 0.004,
+      };
 
       const scattered = {
         pos: new THREE.Vector3(
@@ -1303,7 +1324,7 @@
           Math.random() * Math.PI * 2,
           Math.random() * Math.PI * 2
         ),
-        scale: 0.3 + Math.random() * 0.5,
+        scale: 0.8 + Math.random() * 0.6,
         opacity: 0.06
       };
 
@@ -1315,14 +1336,14 @@
           (i / TOTAL) * Math.PI * 2,
           0
         ),
-        scale: 0.6 + Math.random() * 0.5,
-        opacity: isYellow ? 0.65 : 0.40
+        scale: 1.2 + Math.random() * 0.6,
+        opacity: 0.55
       };
 
       mesh.position.copy(scattered.pos);
       mesh.rotation.copy(scattered.rot);
       mesh.scale.setScalar(scattered.scale);
-      assemblage.push({ mesh, scattered, assembled, isYellow });
+      assemblage.push({ mesh, scattered, assembled, isYellow: true, spinSpeed });
       scene.add(mesh);
     }
 
@@ -1370,29 +1391,26 @@
       nucleoMat.opacity = Math.min(0.48, elapsed * 0.12);
       nucleo.rotation.z += 0.0015;
 
-      /* Geometrías — scattered → assembled con stagger */
-      assemblage.forEach(({ mesh, scattered, assembled, isYellow }, i) => {
+      /* Logos — scattered → assembled con stagger + spin 3D */
+      assemblage.forEach(({ mesh, scattered, assembled, spinSpeed }, i) => {
         const stagger = (i / TOTAL) * 0.35;
         const rawT = Math.max(0, Math.min(1, (eased - stagger) / (1 - stagger + 0.001)));
         const smooth = easeInOutCubic(rawT);
 
-        // Posición: lerp scattered → assembled
         mesh.position.lerpVectors(scattered.pos, assembled.pos, smooth);
-
-        // Escala: lerp
         mesh.scale.setScalar(lerp(scattered.scale, assembled.scale, smooth));
 
-        // Opacidad: fade in + respiración cuando está ensamblado
         const breathe = assembled.opacity + Math.sin(elapsed * 1.1 + i * 0.65) * 0.07;
         const op = smooth < 0.01
           ? scattered.opacity
           : lerp(scattered.opacity, breathe, smooth);
         mesh.material.opacity = Math.max(0, op);
 
-        // Rotación: más rápida al disperso, más suave al ensamblar
-        const rotSpeed = lerp(0.008, 0.002, smooth);
-        mesh.rotation.x += rotSpeed * (isYellow ? 1 : -1);
-        mesh.rotation.y += rotSpeed * 0.7;
+        /* Rotación 3D — giro continuo sobre sus ejes, más rápido al disperso */
+        const speedMul = lerp(1.5, 1, smooth);
+        mesh.rotation.x += spinSpeed.x * speedMul;
+        mesh.rotation.y += spinSpeed.y * speedMul;
+        mesh.rotation.z += spinSpeed.z * speedMul;
       });
 
       /* Líneas de conexión — aparecen conforme se ensambla */
@@ -1622,10 +1640,9 @@
       card.addEventListener('mouseleave', () => { card.style.background = ''; });
     });
 
-    /* ── PARTICLES ───────────────────────────────────── */
+    /* ── PARTICLES (scroll-driven logo rain) ────────── */
     const canvas = document.getElementById('particles');
     const ctx = canvas.getContext('2d');
-    let parts = [];
     let particlesPaused = false;
 
     document.addEventListener('visibilitychange', () => {
@@ -1636,35 +1653,71 @@
     function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resizeCanvas); resizeCanvas();
 
-    function mkPart() {
-      return {
+    const LOGO_FILES = [
+      'icons/GHL.png','icons/clickup.png','icons/clientify.png',
+      'icons/googleads.png','icons/holded.png','icons/hostinger.png',
+      'icons/hubspot.png','icons/metaads.png','icons/n8n.png',
+      'icons/notion.png','icons/obsidian.png','icons/wordpres.png'
+    ];
+    const logoImgs = LOGO_FILES.map(function(src) {
+      var img = new Image(); img.src = src; return img;
+    });
+    var logosReady = false;
+    Promise.all(logoImgs.map(function(img) {
+      return img.complete ? Promise.resolve() : new Promise(function(r) { img.onload = r; img.onerror = r; });
+    })).then(function() { logosReady = true; });
+
+    /* Scroll suavizado — velocidad constante sin aceleración */
+    var rawScroll = 0, smoothScroll = 0, lastSmooth = 0;
+    window.addEventListener('scroll', function() { rawScroll = window.pageYOffset; }, { passive: true });
+
+    var parts = [];
+    var PART_COUNT = 14;
+    for (var i = 0; i < PART_COUNT; i++) {
+      parts.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        r: Math.random() * 1.4 + .4,
-        vx: (Math.random() - .5) * .2,
-        vy: -Math.random() * .4 - .1,
-        life: 0,
-        max: Math.random() * 200 + 100,
-        c: Math.random() > .72 ? '#F3F959' : '#4a4a4a',
-      };
+        size: Math.random() * 12 + 20,
+        xDrift: (Math.random() - .5) * .15,
+        rot: Math.random() * Math.PI * 2,
+        rotV: (Math.random() - .5) * .003,
+        logo: Math.floor(Math.random() * logoImgs.length),
+        speed: 0.6 + Math.random() * 0.4,
+      });
     }
-    for (let i = 0; i < 30; i++) { const p = mkPart(); p.life = Math.random() * p.max; parts.push(p); }
 
     function drawParts() {
       if (particlesPaused) return;
+      /* Lerp hacia scroll real — limita velocidad max */
+      smoothScroll += Math.max(-1.5, Math.min(1.5, (rawScroll - smoothScroll) * 0.04));
+      var delta = smoothScroll - lastSmooth;
+      lastSmooth = smoothScroll;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      parts.forEach((p, i) => {
-        p.x += p.vx; p.y += p.vy; p.life++;
-        const t = p.life / p.max;
-        const a = t < .1 ? t * 10 : t > .8 ? (1 - t) * 5 : 1;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = p.c;
-        ctx.globalAlpha = a * .3;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        if (p.life >= p.max) parts[i] = mkPart();
-      });
+      if (logosReady) {
+        for (var i = 0; i < parts.length; i++) {
+          var p = parts[i];
+          p.y -= delta * p.speed;
+          p.x += p.xDrift;
+          p.rot += p.rotV;
+
+          /* Wrap: sale por abajo → entra por arriba, y viceversa */
+          if (p.y > canvas.height + p.size) { p.y = -p.size; p.x = Math.random() * canvas.width; }
+          if (p.y < -p.size) { p.y = canvas.height + p.size; p.x = Math.random() * canvas.width; }
+          if (p.x > canvas.width + p.size) p.x = -p.size;
+          if (p.x < -p.size) p.x = canvas.width + p.size;
+
+          var img = logoImgs[p.logo];
+          if (img.naturalWidth > 0) {
+            ctx.save();
+            ctx.globalAlpha = .25;
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.drawImage(img, -p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.restore();
+          }
+        }
+      }
       requestAnimationFrame(drawParts);
     }
     drawParts();
