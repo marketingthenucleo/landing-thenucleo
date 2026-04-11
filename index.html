@@ -385,21 +385,14 @@
     /* ── PHASE 3 — SHOWCASE (SPLIT LAYOUT) ──────────── */
     .phase-showcase {
       flex-direction: row; gap: 0;
+      max-width: 1200px; margin: 0 auto;
       align-items: center;
-      justify-content: center;
-      padding: 0 48px;
-      padding-top: 14vh;
-    }
-    /* Header breaks out of the row — full width centered */
-    .phase-showcase .phase-header {
-      position: absolute; top: 10vh; left: 0; right: 0;
-      width: 100%;
+      padding: 0 40px;
     }
 
     /* Modules deck — LEFT */
     .showcase-modules {
-      width: 40%;
-      max-width: 440px;
+      width: 42%;
       padding-right: 48px;
       order: -1;
       position: relative;
@@ -408,8 +401,7 @@
 
     /* Laptop side — RIGHT */
     .laptop-wrapper {
-      width: 55%; flex-shrink: 0;
-      max-width: 660px;
+      width: 58%; flex-shrink: 0;
       position: relative;
       pointer-events: auto;
     }
@@ -1058,7 +1050,7 @@
 
       <!-- PHASE 3 — SHOWCASE: SPLIT LAYOUT -->
       <div class="phase phase-showcase" data-p="3">
-        <div class="phase-header">
+        <div class="phase-header" style="position:absolute;top:10vh;left:0;right:0;">
           <div class="section-label">Tu ma&ntilde;ana perfecta</div>
           <h2 class="section-title">Abres el portal.<br/><em>Todo controlado.</em></h2>
         </div>
